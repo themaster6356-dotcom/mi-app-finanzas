@@ -5,10 +5,7 @@ import json
 import os
 
 # Archivo donde se guardará todo
-if os.getenv("ANDROID_STORAGE"):
-    ARCHIVO_DATOS = os.path.join(os.environ["HOME"], "mis_finanzas_datos.json")
-else:
-    ARCHIVO_DATOS = "mis_finanzas_datos.json"
+ARCHIVO_DATOS = os.path.join(os.getcwd(), "mis_finanzas_datos.json")
 
 def cargar_datos():
     if os.path.exists(ARCHIVO_DATOS):
@@ -256,3 +253,4 @@ def main(page: ft.Page):
 
 
 ft.app(target=main)
+
