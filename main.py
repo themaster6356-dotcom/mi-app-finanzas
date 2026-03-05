@@ -5,7 +5,7 @@ import json
 import os
 
 # Archivo donde se guardará todo
-ARCHIVO_DATOS = os.path.join(os.getcwd(), "mis_finanzas_datos.json")
+ARCHIVO_DATOS = "mis_finanzas_datos.json"
 
 def cargar_datos():
     if os.path.exists(ARCHIVO_DATOS):
@@ -253,4 +253,5 @@ def main(page: ft.Page):
 
 
 ft.app(target=main)
+
 
