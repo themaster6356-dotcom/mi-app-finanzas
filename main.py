@@ -260,7 +260,23 @@ def main(page: ft.Page):
     page.add(t)
 
 
-ft.app(target=main)
+def main_detector(page: ft.Page):
+    import traceback
+    import flet as ft
+    try:
+        # Intenta ejecutar tu aplicación normal
+        main(page)
+    except Exception as e:
+        # Si algo explota, pone la pantalla negra y muestra el error en rojo
+        page.bgcolor = "black"
+        page.scroll = "always"
+        page.add(ft.Text("¡Oops! Hubo un error:", size=20, color="red", weight="bold"))
+        page.add(ft.Text(traceback.format_exc(), color="red"))
+        page.update()
+
+# Esta es la nueva línea final que arranca la app con el detector
+ft.app(target=main_detector))
+
 
 
 
