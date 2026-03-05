@@ -9,13 +9,21 @@ ARCHIVO_DATOS = "mis_finanzas_datos.json"
 
 def cargar_datos():
     if os.path.exists(ARCHIVO_DATOS):
-        with open(ARCHIVO_DATOS, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(ARCHIVO_DATOS, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error al leer datos: {e}")
+            
+    # Si no hay archivo o hay un error, empezamos de cero limpiamente
     return {"ingresos": [], "gastos": [], "deudas": []}
 
 def guardar_datos(datos):
-    with open(ARCHIVO_DATOS, "w", encoding="utf-8") as f:
-        json.dump(datos, f, indent=4)
+    try:
+        with open(ARCHIVO_DATOS, "w", encoding="utf-8") as f:
+            json.dump(datos, f, indent=4)
+    except Exception as e:
+        print(f"Error al guardar datos: {e}")
 
 def main(page: ft.Page):
     # Configuración de la ventana
@@ -253,5 +261,6 @@ def main(page: ft.Page):
 
 
 ft.app(target=main)
+
 
 
