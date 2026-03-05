@@ -125,3 +125,4 @@ def main_detector(page: ft.Page):
         page.update()
 
 ft.app(target=main_detector)
+
