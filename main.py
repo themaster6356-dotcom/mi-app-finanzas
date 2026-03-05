@@ -275,7 +275,8 @@ def main_detector(page: ft.Page):
         page.update()
 
 # Esta es la nueva línea final que arranca la app con el detector
-ft.app(target=main_detector))
+ft.app(target=main_detector)
+
 
 
 
