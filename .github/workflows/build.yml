@@ -1,7 +1,7 @@
 name: Build Android APK
 on:
   push:
-    branches: [ main ]
+    branches: [ main ] # Asegúrate de que tu rama principal se llame main
 
 jobs:
   build:
@@ -12,11 +12,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # Python 3.11 evita el error de 'unicode'
+          python-version: '3.11'
 
-      - name: Install Flet
+      - name: Install dependencies
         run: |
-          pip install flet==0.21.2 
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -29,11 +30,8 @@ jobs:
         with:
           flutter-version: '3.19.0'
 
-      - name: Accept Android Licenses
-        run: yes | sdkmanager --licenses || true
-
       - name: Build APK
-        run: flet build apk
+        run: flet build apk --verbose
           
       - name: Upload APK
         uses: actions/upload-artifact@v4
