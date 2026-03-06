@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Flet CLI
+      - name: Install Dependencies
         run: |
           pip install flet==0.21.2
 
@@ -31,11 +31,12 @@ jobs:
 
       - name: Accept Android Licenses
         run: |
-          # Esto acepta las licencias de Google automáticamente
+          # Esto soluciona el error que tenías en el log
           yes | sdkmanager --licenses || true
 
       - name: Build APK
         run: |
+          # Quitamos --permissions manuales porque daban error de "choice"
           flet build apk
           
       - name: Upload APK
