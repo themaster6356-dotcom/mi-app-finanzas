@@ -1,63 +1,52 @@
 import flet as ft
 from datetime import datetime
 
-# ── Tu Paleta de Colores Original ──────────────────────────────────────────
-BG          = "#0f1117"
-SURFACE     = "#1a1d27"
-CARD        = "#21253a"
-BORDER      = "#2a2f45"
-TEXT        = "#eef0f8"
-MUTED       = "#6b7190"
-GREEN       = "#00e5a0"
-GREEN_DIM   = "#00c98a"
-RED         = "#ff5c7a"
-RED_DIM     = "#e03060"
-ORANGE      = "#ffaa3b"
-ORANGE_DIM  = "#e08830"
-BLUE        = "#5b8cff"
+# Colores en Hexadecimal para evitar el error 'ft.colors'
+BG, SURFACE, CARD = "#0f1117", "#1a1d27", "#21253a"
+BORDER, TEXT, MUTED = "#2a2f45", "#eef0f8", "#6b7190"
+GREEN, RED, ORANGE, BLUE = "#00e5a0", "#ff5c7a", "#ffaa3b", "#5b8cff"
 
 def main(page: ft.Page):
-    page.title        = "Mis Finanzas"
-    page.theme_mode   = ft.ThemeMode.DARK
-    page.bgcolor      = BG
-    page.padding      = 0
-    
-    # --- Gestión de Datos Segura para Android ---
-    def cargar_datos():
-        if page.client_storage.contains_key("datos_finanzas"):
-            return page.client_storage.get("datos_finanzas")
-        return {"ingresos": [], "gastos": [], "deudas": []}
+    page.title = "Mis Finanzas"
+    page.bgcolor = BG
+    page.theme_mode = ft.ThemeMode.DARK
+    page.padding = 0
 
-    def guardar_datos_y_refrescar():
-        page.client_storage.set("datos_finanzas", datos)
-        renderizar_listas()
+    # Solución al error 'client_storage': Verificamos soporte
+    def cargar_datos():
+        try:
+            if page.client_storage.contains_key("finanzas_v1"):
+                return page.client_storage.get("finanzas_v1")
+        except Exception: pass
+        return {"ingresos": [], "gastos": [], "deudas": []}
 
     datos = cargar_datos()
 
-    categorias_gastos = ["🚌 Transporte", "🍛 Almuerzos", "🍔 Comida Rápida", "🍫 Antojos", "🛒 Supermercado", "🎮 Entretenimiento", "💸 Otros"]
-    cat_sel = {"valor": categorias_gastos[0]}
+    def guardar():
+        page.client_storage.set("finanzas_v1", datos)
+        actualizar_interfaz()
 
-    # --- Elementos de Resumen ---
+    # --- CATEGORÍAS ---
+    categorias = ["🚌 Transporte", "🍛 Almuerzos", "🍔 Comida", "🍫 Antojos", "🛒 Super", "🎮 Ocio", "💸 Otros"]
+    cat_seleccionada = {"valor": categorias[0]}
+
+    # --- ELEMENTOS DE UI (Referencias) ---
     txt_balance = ft.Text("$0.00", size=38, weight="bold", color=GREEN)
-    txt_ing_card = ft.Text("$0.00", size=15, weight="bold", color=GREEN)
-    txt_gas_card = ft.Text("$0.00", size=15, weight="bold", color=RED)
-    txt_deu_card = ft.Text("$0.00", size=15, weight="bold", color=ORANGE)
+    txt_ing_res = ft.Text("$0.00", size=15, weight="bold", color=GREEN)
+    txt_gas_res = ft.Text("$0.00", size=15, weight="bold", color=RED)
+    txt_deu_res = ft.Text("$0.00", size=15, weight="bold", color=ORANGE)
+    
+    lista_recientes = ft.ListView(expand=True, spacing=10)
 
-    # Listas UI
-    lista_recientes = ft.ListView(expand=True, spacing=8)
-    lista_ingresos_ui = ft.ListView(expand=True, spacing=8)
-    lista_gastos_ui = ft.ListView(expand=True, spacing=8)
-    lista_deudas_ui = ft.ListView(expand=True, spacing=8)
-
-    # --- Funciones de Diseño Originales (Corregidas para Android) ---
+    # --- COMPONENTES VISUALES ---
     def tarjeta_stat(emoji, txt_ref, label):
         return ft.Container(
             content=ft.Column([
                 ft.Text(emoji, size=18),
                 txt_ref,
                 ft.Text(label, size=10, color=MUTED),
-            ], spacing=4, horizontal_alignment="start"),
-            bgcolor=SURFACE, border=ft.border.all(1, BORDER), border_radius=18, padding=14, expand=True,
+            ], spacing=4),
+            bgcolor=SURFACE, border=ft.border.all(1, BORDER), border_radius=18, padding=14, expand=True
         )
 
     def item_lista(icono, titulo, subtitulo, monto, col_monto, col_bg):
@@ -70,70 +59,93 @@ def main(page: ft.Page):
             bgcolor=SURFACE, border=ft.border.all(1, BORDER), border_radius=14, padding=12
         )
 
-    def campo(label, tipo=ft.KeyboardType.TEXT):
-        return ft.TextField(label=label, keyboard_type=tipo, border_color=BORDER, focused_border_color=BLUE, border_radius=14, color=TEXT, filled=True, fill_color=SURFACE, content_padding=16)
-
-    def boton_accion(texto, c1, c2, func):
-        return ft.Container(content=ft.Text(texto, size=14, color="white", weight="bold", text_align="center"), 
-                            gradient=ft.LinearGradient([c1, c2], begin="centerLeft", end="centerRight"),
-                            border_radius=18, padding=16, alignment=ft.alignment.center, on_click=func)
-
-    # --- Lógica de Listas ---
-    def renderizar_listas():
-        t_ing = sum(float(i["Monto"]) for i in datos["ingresos"])
-        t_gas = sum(float(g["Monto"]) for g in datos["gastos"])
-        t_deu = sum(float(d["Monto"]) for d in datos["deudas"])
+    # --- LÓGICA DE ACTUALIZACIÓN ---
+    def actualizar_interfaz():
+        t_ing = sum(float(i["m"]) for i in datos["ingresos"])
+        t_gas = sum(float(g["m"]) for g in datos["gastos"])
+        t_deu = sum(float(d["m"]) for d in datos["deudas"])
         
-        txt_balance.value, txt_ing_card.value, txt_gas_card.value, txt_deu_card.value = f"${(t_ing-t_gas):,.2f}", f"${t_ing:,.2f}", f"${t_gas:,.2f}", f"${t_deu:,.2f}"
+        txt_balance.value = f"${(t_ing - t_gas):,.2f}"
+        txt_ing_res.value = f"${t_ing:,.2f}"
+        txt_gas_res.value = f"${t_gas:,.2f}"
+        txt_deu_res.value = f"${t_deu:,.2f}"
         
         lista_recientes.controls.clear()
-        # Combinar y mostrar últimos 5
-        todo = [("💹", i["Concepto"], i["Fecha"], f"+${float(i['Monto']):,.2f}", GREEN, "rgba(0,229,160,0.1)") for i in datos["ingresos"]] + \
-               [("📉", g["Categoría"], g["Fecha"], f"-${float(g['Monto']):,.2f}", RED, "rgba(255,92,122,0.1)") for g in datos["gastos"]]
-        todo.sort(key=lambda x: x[2], reverse=True)
-        for x in todo[:5]: lista_recientes.controls.append(item_lista(*x))
+        # Combinar registros para "Recientes"
+        items = []
+        for i in datos["ingresos"]: items.append(("💹", i["c"], i["f"], f"+${i['m']:,.2f}", GREEN, "rgba(0,229,160,0.1)"))
+        for g in datos["gastos"]: items.append(("📉", g["cat"], g["f"], f"-${g['m']:,.2f}", RED, "rgba(255,92,122,0.1)"))
+        
+        for x in items[-5:]: # Mostrar últimos 5
+            lista_recientes.controls.append(item_lista(*x))
         page.update()
 
-    # --- Vistas ---
-    ing_n = campo("Descripción"); ing_m = campo("Monto", ft.KeyboardType.NUMBER)
-    gas_m = campo("Monto", ft.KeyboardType.NUMBER)
-    deu_n = campo("¿A quién le debes?"); deu_m = campo("Monto", ft.KeyboardType.NUMBER)
+    # --- VISTAS DE ENTRADA ---
+    # Campos corregidos para evitar errores de iconos y tipos
+    in_ing_nom = ft.TextField(label="Descripción", border_radius=15, border_color=BORDER, bgcolor=SURFACE)
+    in_ing_mon = ft.TextField(label="Monto", keyboard_type="number", border_radius=15, border_color=BORDER, bgcolor=SURFACE)
+    
+    in_gas_mon = ft.TextField(label="Monto Gastado", keyboard_type="number", border_radius=15, border_color=BORDER, bgcolor=SURFACE)
+    
+    def agregar_ingreso(e):
+        if in_ing_nom.value and in_ing_mon.value:
+            datos["ingresos"].append({"f": datetime.now().strftime("%d/%m"), "c": in_ing_nom.value, "m": float(in_ing_mon.value)})
+            in_ing_nom.value = ""; in_ing_mon.value = ""
+            guardar()
 
-    def add_i(e):
-        if ing_n.value and ing_m.value:
-            datos["ingresos"].append({"Fecha": datetime.now().strftime("%Y-%m-%d"), "Concepto": ing_n.value, "Monto": float(ing_m.value)})
-            ing_n.value = ""; ing_m.value = ""; guardar_datos_y_refrescar()
+    def agregar_gasto(e):
+        if in_gas_mon.value:
+            datos["gastos"].append({"f": datetime.now().strftime("%d/%m"), "cat": cat_sel_txt.value, "m": float(in_gas_mon.value)})
+            in_gas_mon.value = ""
+            guardar()
 
-    def add_g(e):
-        if gas_m.value:
-            datos["gastos"].append({"Fecha": datetime.now().strftime("%Y-%m-%d"), "Categoría": cat_sel["valor"], "Monto": float(gas_m.value)})
-            gas_m.value = ""; guardar_datos_y_refrescar()
+    # Dropdown corregido: Se quita 'prefix_icon' porque da error en Android
+    cat_sel_txt = ft.Dropdown(
+        label="Categoría",
+        options=[ft.dropdown.Option(c) for c in categorias],
+        value=categorias[0],
+        border_radius=15,
+        bgcolor=SURFACE
+    )
 
+    # --- NAVEGACIÓN Y VISTAS ---
+    # Corrección de 'top_left' y 'center' usando strings para mayor compatibilidad
+    # Corrección de Tab(text=...) a Tab(label=...)
+    
     vista_inicio = ft.Column([
         ft.Container(height=10),
-        ft.Container(content=ft.Column([ft.Text("BALANCE TOTAL", size=11, color="#7aa0cc", weight="bold"), txt_balance], spacing=4),
-                     gradient=ft.LinearGradient(["#1e3a5f", "#0f1e34"], begin="topLeft", end="bottomRight"), border_radius=24, padding=20),
-        ft.Row([tarjeta_stat("💹", txt_ing_card, "Ingresos"), tarjeta_stat("📉", txt_gas_card, "Gastos"), tarjeta_stat("⚠️", txt_deu_card, "Deudas")], spacing=10),
-        ft.Text("RECIENTES", size=11, color=MUTED, weight="bold"),
+        ft.Container(
+            content=ft.Column([ft.Text("BALANCE TOTAL", size=11, weight="bold"), txt_balance]),
+            gradient=ft.LinearGradient(["#1e3a5f", "#0f1e34"], begin="topLeft", end="bottomRight"),
+            border_radius=25, padding=25
+        ),
+        ft.Row([
+            tarjeta_stat("💹", txt_ing_res, "Ingresos"),
+            tarjeta_stat("📉", txt_gas_res, "Gastos"),
+            tarjeta_stat("⚠️", txt_deu_res, "Deudas"),
+        ], spacing=10),
+        ft.Text("RECIENTES", size=12, weight="bold", color=MUTED),
         lista_recientes
     ], expand=True)
 
-    vista_ingreso = ft.Column([ft.Text("Nuevo Ingreso", size=22, weight="bold"), ing_n, ing_m, boton_accion("＋ Añadir", GREEN_DIM, GREEN, add_i)], visible=False, spacing=15)
-    vista_gasto = ft.Column([ft.Text("Nuevo Gasto", size=22, weight="bold"), gas_m, boton_accion("＋ Añadir", RED_DIM, RED, add_g)], visible=False, spacing=15)
+    tabs = ft.Tabs(
+        selected_index=0,
+        tabs=[
+            ft.Tab(label="Inicio", icon=ft.Icons.HOME, content=vista_inicio),
+            ft.Tab(label="Ingreso", icon=ft.Icons.ADD_CIRCLE, content=ft.Column([
+                ft.Text("Registrar Ingreso", size=20, weight="bold"),
+                in_ing_nom, in_ing_mon,
+                ft.ElevatedButton("Guardar Ingreso", on_click=agregar_ingreso, bgcolor=GREEN, color="black")
+            ], padding=20, spacing=20)),
+            ft.Tab(label="Gasto", icon=ft.Icons.REMOVE_CIRCLE, content=ft.Column([
+                ft.Text("Registrar Gasto", size=20, weight="bold"),
+                cat_sel_txt, in_gas_mon,
+                ft.ElevatedButton("Guardar Gasto", on_click=agregar_gasto, bgcolor=RED, color="white")
+            ], padding=20, spacing=20)),
+        ], expand=True
+    )
 
-    vistas = [vista_inicio, vista_ingreso, vista_gasto]
-
-    def cambiar_tab(e):
-        for i, v in enumerate(vistas): v.visible = (i == e.control.selected_index)
-        page.update()
-
-    page.navigation_bar = ft.NavigationBar(bgcolor=SURFACE, on_change=cambiar_tab, destinations=[
-        ft.NavigationDestination(icon=ft.Icons.HOME, label="Inicio"),
-        ft.NavigationDestination(icon=ft.Icons.ADD_CIRCLE_OUTLINE, label="Ingreso"),
-        ft.NavigationDestination(icon=ft.Icons.REMOVE_CIRCLE_OUTLINE, label="Gasto"),
-    ])
-
-    page.add(ft.Container(content=ft.Stack(vistas), padding=18, expand=True))
-    renderizar_listas()
+    page.add(ft.Container(content=tabs, expand=True, padding=10))
+    actualizar_interfaz()
 
 ft.app(target=main)
