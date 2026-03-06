@@ -164,8 +164,8 @@ def main(page: ft.Page):
                             text_align=ft.TextAlign.CENTER),
             gradient=ft.LinearGradient(
                 [color_inicio, color_fin],
-                begin=ft.alignment.center_left,
-                end=ft.alignment.center_right,
+                begin=ft.Alignment(-1, 0),
+                end=ft.Alignment(1, 0),
             ),
             border_radius=18,
             padding=ft.padding.symmetric(vertical=16),
@@ -324,8 +324,8 @@ def main(page: ft.Page):
                 ], spacing=4),
                 gradient=ft.LinearGradient(
                     ["#1e3a5f", "#0f1e34"],
-                    begin=ft.alignment.top_left,
-                    end=ft.alignment.bottom_right,
+                    begin=ft.Alignment(-1, -1),
+                    end=ft.Alignment(1, 1),
                 ),
                 border=ft.border.all(1, "#2a4a6a"),
                 border_radius=24,
