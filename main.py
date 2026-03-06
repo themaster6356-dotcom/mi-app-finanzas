@@ -3,7 +3,6 @@ from datetime import datetime
 import json
 import os
 
-# --- Lógica de Archivos Robusta ---
 ARCHIVO_DATOS = os.path.join(os.getcwd(), "mis_finanzas_datos.json")
 
 def cargar_datos():
@@ -22,11 +21,10 @@ def guardar_datos(datos):
     except Exception:
         pass
 
-# --- Colores Globales (Hexadecimal para evitar errores de atributo) ---
+# Colores seguros
 BG, SURFACE, CARD = "#0f1117", "#1a1d27", "#21253a"
 BORDER, TEXT, MUTED = "#2a2f45", "#eef0f8", "#6b7190"
 GREEN, RED, ORANGE, BLUE = "#00e5a0", "#ff5c7a", "#ffaa3b", "#5b8cff"
-GREEN_DIM, RED_DIM, ORANGE_DIM = "#00c98a", "#e03060", "#e08830"
 
 def main(page: ft.Page):
     page.title = "Mis Finanzas"
@@ -36,38 +34,21 @@ def main(page: ft.Page):
 
     datos = cargar_datos()
 
-    categorias_gastos = [
-        "🚌 Transporte", "🍛 Almuerzos", "🍔 Comida",
-        "🍫 Antojos", "🛒 Super", "🎮 Juegos", "💸 Otros"
-    ]
-
-    # Estado
+    categorias_gastos = ["🚌 Transporte", "🍛 Almuerzos", "🍔 Comida", "🍫 Antojos", "🛒 Super", "🎮 Juegos", "💸 Otros"]
     categoria_seleccionada = {"valor": categorias_gastos[0]}
 
-    # --- Elementos de UI ---
     txt_balance = ft.Text("$0.00", size=38, weight="bold", color=GREEN)
     txt_ing_card = ft.Text("$0.00", size=15, weight="bold", color=GREEN)
     txt_gas_card = ft.Text("$0.00", size=15, weight="bold", color=RED)
     txt_deu_card = ft.Text("$0.00", size=15, weight="bold", color=ORANGE)
 
-    # Listas
     lista_ingresos_ui = ft.ListView(expand=True, spacing=8)
     lista_gastos_ui = ft.ListView(expand=True, spacing=8)
     lista_deudas_ui = ft.ListView(expand=True, spacing=8)
     lista_recientes = ft.ListView(expand=True, spacing=8)
 
-    # --- Campos de Entrada ---
     def crear_campo(label, tipo=ft.KeyboardType.TEXT):
-        return ft.TextField(
-            label=label,
-            keyboard_type=tipo,
-            border_color=BORDER,
-            focused_border_color=BLUE,
-            border_radius=14,
-            color=TEXT,
-            bgcolor=SURFACE,
-            content_padding=ft.padding.symmetric(horizontal=16, vertical=14),
-        )
+        return ft.TextField(label=label, keyboard_type=tipo, border_color=BORDER, focused_border_color=BLUE, border_radius=14, color=TEXT, bgcolor=SURFACE, content_padding=ft.padding.symmetric(horizontal=16, vertical=14))
 
     ingreso_nombre = crear_campo("Descripción")
     ingreso_cantidad = crear_campo("Monto ($)", ft.KeyboardType.NUMBER)
@@ -75,7 +56,6 @@ def main(page: ft.Page):
     deuda_nombre = crear_campo("¿A quién?")
     deuda_cantidad = crear_campo("Monto ($)", ft.KeyboardType.NUMBER)
 
-    # --- Chips de Categoría ---
     chips_row = ft.Row(wrap=True, spacing=8, run_spacing=8)
 
     def build_chips():
@@ -87,9 +67,8 @@ def main(page: ft.Page):
                     content=ft.Text(cat, size=12, color=BLUE if sel else MUTED),
                     bgcolor="rgba(91,140,255,0.1)" if sel else SURFACE,
                     border=ft.border.all(1, BLUE if sel else BORDER),
-                    border_radius=20,
-                    padding=ft.padding.symmetric(horizontal=12, vertical=7),
-                    on_click=lambda e, c=cat: seleccionar_chip(c),
+                    border_radius=20, padding=ft.padding.symmetric(horizontal=12, vertical=7),
+                    on_click=lambda e, c=cat: seleccionar_chip(c)
                 )
             )
 
@@ -98,29 +77,20 @@ def main(page: ft.Page):
         build_chips()
         page.update()
 
-    # --- Helpers Visuales ---
     def tarjeta_stat(emoji, txt_ref, label):
-        return ft.Container(
-            content=ft.Column([
-                ft.Text(emoji, size=18),
-                txt_ref,
-                ft.Text(label, size=10, color=MUTED),
-            ], spacing=4),
-            bgcolor=SURFACE, border=ft.border.all(1, BORDER),
-            border_radius=18, padding=14, expand=True
-        )
+        return ft.Container(content=ft.Column([ft.Text(emoji, size=18), txt_ref, ft.Text(label, size=10, color=MUTED)], spacing=4), bgcolor=SURFACE, border=ft.border.all(1, BORDER), border_radius=18, padding=14, expand=True)
 
     def item_lista(emoji, titulo, fecha, monto, col, bg_col):
+        # Solución del error de alineación (usamos "center" como texto)
         return ft.Container(
             content=ft.Row([
-                ft.Container(ft.Text(emoji), bgcolor=bg_col, border_radius=12, width=40, height=40, alignment=ft.alignment.center),
+                ft.Container(ft.Text(emoji), bgcolor=bg_col, border_radius=12, width=40, height=40, alignment="center"),
                 ft.Column([ft.Text(titulo, size=13, weight="w500"), ft.Text(fecha, size=11, color=MUTED)], expand=True),
                 ft.Text(monto, size=14, color=col, weight="bold")
             ]),
             bgcolor=SURFACE, border=ft.border.all(1, BORDER), border_radius=14, padding=12
         )
 
-    # --- Lógica de Datos ---
     def actualizar_resumen():
         t_ing = sum(float(i["Monto"]) for i in datos["ingresos"])
         t_gas = sum(float(g["Monto"]) for g in datos["gastos"])
@@ -132,7 +102,6 @@ def main(page: ft.Page):
         txt_deu_card.value = f"${t_deu:,.2f}"
         txt_balance.value = f"${bal:,.2f}"
         txt_balance.color = GREEN if bal >= 0 else RED
-        
         renderizar_listas()
 
     def renderizar_listas():
@@ -141,7 +110,6 @@ def main(page: ft.Page):
         lista_gastos_ui.controls.clear()
         lista_deudas_ui.controls.clear()
 
-        # Recientes (Últimos 6)
         todos = [("ing", i) for i in datos["ingresos"]] + [("gas", g) for g in datos["gastos"]]
         todos.sort(key=lambda x: x[1]["Fecha"], reverse=True)
 
@@ -150,38 +118,26 @@ def main(page: ft.Page):
             emo = "💹" if tipo == "ing" else "📉"
             lista_recientes.controls.append(item_lista(emo, m["Concepto"], m["Fecha"], f"${m['Monto']}", col, bg))
 
-        for i in reversed(datos["ingresos"]):
-            lista_ingresos_ui.controls.append(item_lista("💹", i["Concepto"], i["Fecha"], f"${i['Monto']}", GREEN, "rgba(0,229,160,0.1)"))
-        
-        for g in reversed(datos["gastos"]):
-            lista_gastos_ui.controls.append(item_lista("📉", g["Concepto"], g["Fecha"], f"${g['Monto']}", RED, "rgba(255,92,122,0.1)"))
-
-        for d in reversed(datos["deudas"]):
-            lista_deudas_ui.controls.append(item_lista("👤", d["Concepto"], d["Fecha"], f"${d['Monto']}", ORANGE, "rgba(255,170,59,0.1)"))
-        
+        for i in reversed(datos["ingresos"]): lista_ingresos_ui.controls.append(item_lista("💹", i["Concepto"], i["Fecha"], f"${i['Monto']}", GREEN, "rgba(0,229,160,0.1)"))
+        for g in reversed(datos["gastos"]): lista_gastos_ui.controls.append(item_lista("📉", g["Concepto"], g["Fecha"], f"${g['Monto']}", RED, "rgba(255,92,122,0.1)"))
+        for d in reversed(datos["deudas"]): lista_deudas_ui.controls.append(item_lista("👤", d["Concepto"], d["Fecha"], f"${d['Monto']}", ORANGE, "rgba(255,170,59,0.1)"))
         page.update()
 
-    # --- Acciones ---
     def agregar_registro(tipo, nombre_ctrl, monto_ctrl):
         try:
             val = float(monto_ctrl.value)
             concepto = nombre_ctrl.value if hasattr(nombre_ctrl, 'value') else categoria_seleccionada["valor"]
             if not concepto: return
-            
-            datos[tipo].append({
-                "Fecha": datetime.now().strftime("%d/%m/%y"),
-                "Concepto": concepto,
-                "Monto": val
-            })
+            datos[tipo].append({"Fecha": datetime.now().strftime("%d/%m/%y"), "Concepto": concepto, "Monto": val})
             guardar_datos(datos)
             if hasattr(nombre_ctrl, 'value'): nombre_ctrl.value = ""
             monto_ctrl.value = ""
             actualizar_resumen()
         except: pass
 
-    # --- Vistas ---
     vista_inicio = ft.Column([
         ft.Container(
+            # Solución del error de alineación en el gradiente (usamos texto)
             content=ft.Column([ft.Text("BALANCE TOTAL", size=10, weight="bold", color="#7aa0cc"), txt_balance]),
             gradient=ft.LinearGradient(["#1e3a5f", "#0f1e34"], begin="topLeft", end="bottomRight"),
             border_radius=25, padding=25
@@ -220,29 +176,24 @@ def main(page: ft.Page):
         vista_deuda.visible = (idx == 3)
         page.update()
 
-    # --- Navegación ---
     page.navigation_bar = ft.NavigationBar(
         destinations=[
             ft.NavigationBarDestination(icon=ft.Icons.PIE_CHART_OUTLINE, label="Inicio"),
             ft.NavigationBarDestination(icon=ft.Icons.TRENDING_UP, label="Ingresos"),
             ft.NavigationBarDestination(icon=ft.Icons.TRENDING_DOWN, label="Gastos"),
             ft.NavigationBarDestination(icon=ft.Icons.ACCOUNT_BALANCE_WALLET, label="Deudas"),
-        ],
-        bgcolor=SURFACE,
-        on_change=cambiar_tab
+        ], bgcolor=SURFACE, on_change=cambiar_tab
     )
 
     build_chips()
     page.add(ft.Container(content=ft.Stack([vista_inicio, vista_ingreso, vista_gasto, vista_deuda]), padding=20, expand=True))
     actualizar_resumen()
 
-# --- Detector de Errores ---
 def main_detector(page: ft.Page):
     import traceback
-    try:
-        main(page)
+    try: main(page)
     except Exception:
-        page.add(ft.Text("Error crítico:", color=RED), ft.Text(traceback.format_exc(), color=TEXT))
+        page.add(ft.Text("Error crítico:", color="red"), ft.Text(traceback.format_exc(), color="white"))
         page.update()
 
 ft.app(target=main_detector)
