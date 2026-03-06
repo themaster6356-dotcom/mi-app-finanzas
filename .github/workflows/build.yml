@@ -1,35 +1,45 @@
-name: Generar APK de Mis Finanzas
+name: Build Android APK
 on:
   push:
-    branches: [ main ] # Se activa cada vez que subes cambios a la rama principal
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Clonar el código
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 🐍 Configurar Python
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: 🐦 Configurar Flutter
+      - name: Install Flet CLI
+        run: |
+          pip install flet==0.21.2
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          flutter-version: '3.19.0'
 
-      - name: 📦 Instalar dependencias de Python
+      - name: Accept Android Licenses
         run: |
-          pip install flet pandas openpyxl
+          # Esto acepta las licencias de Google automáticamente
+          yes | sdkmanager --licenses || true
 
-      - name: 🏗️ Construir el APK
+      - name: Build APK
         run: |
-         flet build apk
-
-      - name: 📤 Guardar el APK final
+          flet build apk
+          
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AppFinanzas-Android
+          name: app-release
           path: build/apk/*.apk
