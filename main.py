@@ -39,18 +39,17 @@ def main(page: ft.Page):
     txt_total_deudas = ft.Text("Deudas Activas: $0.00", size=16, color=ft.Colors.ORANGE_700, weight="bold")
     txt_balance = ft.Text("$0.00", size=40, weight="bold", color=ft.Colors.BLUE_GREY_800)
     
-    ingreso_nombre = ft.TextField(label="Descripción", width=300, prefix_icon=ft.Icons.DESCRIPTION)
-    ingreso_cantidad = ft.TextField(label="Monto ($)", width=300, keyboard_type=ft.KeyboardType.NUMBER, prefix_icon=ft.Icons.ATTACH_MONEY)
-    lista_ingresos_ui = ft.ListView(expand=1, spacing=10)
+    ingreso_nombre = ft.TextField(label="Descripción", width=300)
+    ingreso_cantidad = ft.TextField(label="Monto ($)", width=300, keyboard_type=ft.KeyboardType.NUMBER)
+    lista_ingresos_ui = ft.ListView(expand=True, spacing=10)
 
-    # AQUÍ ESTÁ EL CAMBIO DEFINITIVO: Cero iconos en el Dropdown para que no moleste más.
     gasto_categoria = ft.Dropdown(label="Categoría", width=300, options=[ft.dropdown.Option(cat) for cat in categorias_gastos])
-    gasto_cantidad = ft.TextField(label="Monto ($)", width=300, keyboard_type=ft.KeyboardType.NUMBER, prefix_icon=ft.Icons.MONEY_OFF)
-    lista_gastos_ui = ft.ListView(expand=1, spacing=10)
+    gasto_cantidad = ft.TextField(label="Monto ($)", width=300, keyboard_type=ft.KeyboardType.NUMBER)
+    lista_gastos_ui = ft.ListView(expand=True, spacing=10)
 
-    deuda_nombre = ft.TextField(label="¿A quién?", width=300, prefix_icon=ft.Icons.ACCOUNT_BALANCE_WALLET)
-    deuda_cantidad = ft.TextField(label="Monto ($)", width=300, keyboard_type=ft.KeyboardType.NUMBER, prefix_icon=ft.Icons.WARNING_AMBER_ROUNDED)
-    lista_deudas_ui = ft.ListView(expand=1, spacing=10)
+    deuda_nombre = ft.TextField(label="¿A quién?", width=300)
+    deuda_cantidad = ft.TextField(label="Monto ($)", width=300, keyboard_type=ft.KeyboardType.NUMBER)
+    lista_deudas_ui = ft.ListView(expand=True, spacing=10)
 
     def mostrar_alerta(mensaje, color):
         snack = ft.SnackBar(ft.Text(mensaje, color=ft.Colors.WHITE), bgcolor=color)
@@ -74,11 +73,11 @@ def main(page: ft.Page):
         lista_ingresos_ui.controls.clear()
         lista_gastos_ui.controls.clear()
         lista_deudas_ui.controls.clear()
-        for i in datos["ingresos"]:
+        for i in reversed(datos["ingresos"]):
             lista_ingresos_ui.controls.append(ft.ListTile(leading=ft.Icon(ft.Icons.ARROW_UPWARD, color=ft.Colors.GREEN), title=ft.Text(i["Concepto"]), subtitle=ft.Text(f"${i['Monto']}")))
-        for g in datos["gastos"]:
-            lista_gastos_ui.controls.append(ft.ListTile(leading=ft.Icon(ft.Icons.ARROW_DOWNWARD, color=ft.Colors.RED), title=ft.Text(g["Categoría"]), subtitle=ft.Text(f"${g['Monto']}")))
-        for d in datos["deudas"]:
+        for g in reversed(datos["gastos"]):
+            lista_gastos_ui.controls.append(ft.ListTile(leading=ft.Icon(ft.Icons.ARROW_DOWNWARD, color=ft.Colors.RED), title=ft.Text(g.get("Categoría", "Gasto")), subtitle=ft.Text(f"${g['Monto']}")))
+        for d in reversed(datos["deudas"]):
             lista_deudas_ui.controls.append(ft.ListTile(leading=ft.Icon(ft.Icons.WARNING_ROUNDED, color=ft.Colors.ORANGE), title=ft.Text(d["Concepto"]), subtitle=ft.Text(f"${d['Monto']}")))
         actualizar_resumen()
 
@@ -92,32 +91,69 @@ def main(page: ft.Page):
             nombre.value = ""
             monto.value = ""
             renderizar_listas()
-            mostrar_alerta("¡Guardado!", ft.Colors.GREEN)
-        except:
-            mostrar_alerta("Error en el monto", ft.Colors.RED)
+            mostrar_alerta("¡Guardado exitosamente!", ft.Colors.GREEN)
+        except Exception:
+            mostrar_alerta("Error: Ingresa un monto válido", ft.Colors.RED)
 
-    # --- PESTAÑAS ---
-    t = ft.Tabs(
-        selected_index=0, expand=1,
-        tabs=[
-            ft.Tab(text="Inicio", icon=ft.Icons.PIE_CHART_OUTLINE, content=ft.Column([
-                ft.Container(height=20),
-                txt_balance,
-                ft.Card(content=ft.Container(padding=15, content=ft.Column([txt_total_ingresos, txt_total_gastos, txt_total_deudas]))),
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)),
-            ft.Tab(text="Ingreso", icon=ft.Icons.TRENDING_UP, content=ft.Column([ingreso_nombre, ingreso_cantidad, ft.ElevatedButton("Añadir", on_click=lambda _: agregar_item("ingresos", ingreso_nombre, ingreso_cantidad), bgcolor=ft.Colors.GREEN, color=ft.Colors.WHITE)], horizontal_alignment=ft.CrossAxisAlignment.CENTER)),
-            ft.Tab(text="Gasto", icon=ft.Icons.TRENDING_DOWN, content=ft.Column([gasto_categoria, gasto_cantidad, ft.ElevatedButton("Añadir", on_click=lambda _: agregar_item("gastos", gasto_categoria, gasto_cantidad, cat=gasto_categoria.value), bgcolor=ft.Colors.RED, color=ft.Colors.WHITE)], horizontal_alignment=ft.CrossAxisAlignment.CENTER)),
-            ft.Tab(text="Deuda", icon=ft.Icons.ACCOUNT_BALANCE_WALLET, content=ft.Column([deuda_nombre, deuda_cantidad, ft.ElevatedButton("Añadir", on_click=lambda _: agregar_item("deudas", deuda_nombre, deuda_cantidad), bgcolor=ft.Colors.ORANGE, color=ft.Colors.WHITE)], horizontal_alignment=ft.CrossAxisAlignment.CENTER))
-        ]
+    # --- VISTAS INDIVIDUALES (REEMPLAZAN A LAS PESTAÑAS) ---
+    vista_inicio = ft.Column([
+        ft.Container(height=20),
+        txt_balance,
+        ft.Card(content=ft.Container(padding=15, content=ft.Column([txt_total_ingresos, txt_total_gastos, txt_total_deudas]))),
+    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, visible=True, expand=True)
+    
+    vista_ingreso = ft.Column([
+        ingreso_nombre, 
+        ingreso_cantidad, 
+        ft.ElevatedButton("Añadir Ingreso", on_click=lambda _: agregar_item("ingresos", ingreso_nombre, ingreso_cantidad), bgcolor=ft.Colors.GREEN, color=ft.Colors.WHITE),
+        ft.Container(height=10),
+        lista_ingresos_ui
+    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, visible=False, expand=True)
+    
+    vista_gasto = ft.Column([
+        gasto_categoria, 
+        gasto_cantidad, 
+        ft.ElevatedButton("Añadir Gasto", on_click=lambda _: agregar_item("gastos", gasto_categoria, gasto_cantidad, cat=gasto_categoria.value), bgcolor=ft.Colors.RED, color=ft.Colors.WHITE),
+        ft.Container(height=10),
+        lista_gastos_ui
+    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, visible=False, expand=True)
+    
+    vista_deuda = ft.Column([
+        deuda_nombre, 
+        deuda_cantidad, 
+        ft.ElevatedButton("Añadir Deuda", on_click=lambda _: agregar_item("deudas", deuda_nombre, deuda_cantidad), bgcolor=ft.Colors.ORANGE, color=ft.Colors.WHITE),
+        ft.Container(height=10),
+        lista_deudas_ui
+    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, visible=False, expand=True)
+
+    # Función para cambiar de vista según el botón presionado
+    def cambiar_tab(e):
+        idx = e.control.selected_index
+        vista_inicio.visible = (idx == 0)
+        vista_ingreso.visible = (idx == 1)
+        vista_gasto.visible = (idx == 2)
+        vista_deuda.visible = (idx == 3)
+        page.update()
+
+    # --- BARRA DE NAVEGACIÓN INFERIOR ---
+    page.navigation_bar = ft.NavigationBar(
+        destinations=[
+            ft.NavigationBarDestination(icon=ft.Icons.PIE_CHART_OUTLINE, label="Inicio"),
+            ft.NavigationBarDestination(icon=ft.Icons.TRENDING_UP, label="Ingresos"),
+            ft.NavigationBarDestination(icon=ft.Icons.TRENDING_DOWN, label="Gastos"),
+            ft.NavigationBarDestination(icon=ft.Icons.ACCOUNT_BALANCE_WALLET, label="Deudas"),
+        ],
+        on_change=cambiar_tab
     )
+
     renderizar_listas()
-    page.add(t)
+    page.add(vista_inicio, vista_ingreso, vista_gasto, vista_deuda)
 
 def main_detector(page: ft.Page):
     import traceback
     try:
         main(page)
-    except Exception:
+    except Exception as e:
         page.add(ft.Text("Error crítico:", color=ft.Colors.RED, size=20), ft.Text(traceback.format_exc(), color=ft.Colors.WHITE))
         page.bgcolor = "black"
         page.update()
