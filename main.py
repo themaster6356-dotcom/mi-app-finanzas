@@ -1,5 +1,4 @@
 import flet as ft
-import pandas as pd
 from datetime import datetime
 import json
 import os
@@ -35,7 +34,6 @@ def main(page: ft.Page):
         "🍫 Antojos", "🛒 Supermercado", "🎮 Entretenimiento", "💸 Otros"
     ]
 
-    # --- ELEMENTOS CON MAYÚSCULAS CORREGIDAS (Colors e Icons) ---
     txt_total_ingresos = ft.Text("Ingresos: $0.00", size=16, color=ft.Colors.GREEN_700, weight="bold")
     txt_total_gastos = ft.Text("Gastos: $0.00", size=16, color=ft.Colors.RED_700, weight="bold")
     txt_total_deudas = ft.Text("Deudas Activas: $0.00", size=16, color=ft.Colors.ORANGE_700, weight="bold")
@@ -45,7 +43,8 @@ def main(page: ft.Page):
     ingreso_cantidad = ft.TextField(label="Monto ($)", width=300, keyboard_type=ft.KeyboardType.NUMBER, prefix_icon=ft.Icons.ATTACH_MONEY)
     lista_ingresos_ui = ft.ListView(expand=1, spacing=10)
 
-    gasto_categoria = ft.Dropdown(label="Categoría", width=300, options=[ft.dropdown.Option(cat) for cat in categorias_gastos], prefix_icon=ft.Icons.CATEGORY)
+    # AQUÍ ESTÁ LA MAGIA: Cambiamos 'prefix_icon' por 'icon' porque el Dropdown no soporta el primero.
+    gasto_categoria = ft.Dropdown(label="Categoría", width=300, options=[ft.dropdown.Option(cat) for cat in categorias_gastos], icon=ft.Icons.CATEGORY)
     gasto_cantidad = ft.TextField(label="Monto ($)", width=300, keyboard_type=ft.KeyboardType.NUMBER, prefix_icon=ft.Icons.MONEY_OFF)
     lista_gastos_ui = ft.ListView(expand=1, spacing=10)
 
@@ -105,7 +104,6 @@ def main(page: ft.Page):
                 ft.Container(height=20),
                 txt_balance,
                 ft.Card(content=ft.Container(padding=15, content=ft.Column([txt_total_ingresos, txt_total_gastos, txt_total_deudas]))),
-                ft.FilledButton("Exportar Excel", icon=ft.Icons.DOWNLOAD, on_click=lambda _: mostrar_alerta("Generando...", ft.Colors.BLUE)),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER)),
             ft.Tab(text="Ingreso", icon=ft.Icons.TRENDING_UP, content=ft.Column([ingreso_nombre, ingreso_cantidad, ft.ElevatedButton("Añadir", on_click=lambda _: agregar_item("ingresos", ingreso_nombre, ingreso_cantidad), bgcolor=ft.Colors.GREEN, color=ft.Colors.WHITE)], horizontal_alignment=ft.CrossAxisAlignment.CENTER)),
             ft.Tab(text="Gasto", icon=ft.Icons.TRENDING_DOWN, content=ft.Column([gasto_categoria, gasto_cantidad, ft.ElevatedButton("Añadir", on_click=lambda _: agregar_item("gastos", gasto_categoria, gasto_cantidad, cat=gasto_categoria.value), bgcolor=ft.Colors.RED, color=ft.Colors.WHITE)], horizontal_alignment=ft.CrossAxisAlignment.CENTER)),
@@ -125,4 +123,3 @@ def main_detector(page: ft.Page):
         page.update()
 
 ft.app(target=main_detector)
-
