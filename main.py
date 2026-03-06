@@ -3,25 +3,17 @@ from datetime import datetime
 import json
 import os
 
-ARCHIVO_DATOS = os.path.join(os.getcwd(), "mis_finanzas_datos.json")
-
-def cargar_datos():
-    if os.path.exists(ARCHIVO_DATOS):
-        try:
-            with open(ARCHIVO_DATOS, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
+# SOLUCIÓN AL ERROR DE ALMACENAMIENTO:
+# En Android, 'HOME' no siempre existe. Usamos client_storage para guardar datos de forma segura.
+def cargar_datos(page: ft.Page):
+    if page.client_storage.contains_key("datos_finanzas"):
+        return page.client_storage.get("datos_finanzas")
     return {"ingresos": [], "gastos": [], "deudas": []}
 
-def guardar_datos(datos):
-    try:
-        with open(ARCHIVO_DATOS, "w", encoding="utf-8") as f:
-            json.dump(datos, f, indent=4)
-    except Exception:
-        pass
+def guardar_datos(page: ft.Page, datos):
+    page.client_storage.set("datos_finanzas", datos)
 
-# ── Colores globales ──────────────────────────────────────────────────────────
+# ── Colores globales (Sin cambios) ──────────────────────────────────────────
 BG          = "#0f1117"
 SURFACE     = "#1a1d27"
 CARD        = "#21253a"
@@ -41,16 +33,15 @@ def main(page: ft.Page):
     page.theme_mode   = ft.ThemeMode.DARK
     page.bgcolor      = BG
     page.padding      = 0
-    page.window_width = 390
-
-    datos = cargar_datos()
+    
+    # Cargamos datos desde el almacenamiento seguro del dispositivo
+    datos = cargar_datos(page)
 
     categorias_gastos = [
         "🚌 Transporte", "🍛 Almuerzos", "🍔 Comida Rápida",
         "🍫 Antojos", "🛒 Supermercado", "🎮 Entretenimiento", "💸 Otros"
     ]
 
-    # ── Estado chips de categoría ─────────────────────────────────────────────
     categoria_seleccionada = {"valor": categorias_gastos[0]}
 
     # ── Textos de resumen ─────────────────────────────────────────────────────
@@ -82,13 +73,11 @@ def main(page: ft.Page):
     deuda_nombre     = campo("¿A quién le debes?")
     deuda_cantidad   = campo("Monto ($)", ft.KeyboardType.NUMBER)
 
-    # ── Listas UI ─────────────────────────────────────────────────────────────
     lista_ingresos_ui = ft.ListView(expand=True, spacing=8)
     lista_gastos_ui   = ft.ListView(expand=True, spacing=8)
     lista_deudas_ui   = ft.ListView(expand=True, spacing=8)
     lista_recientes   = ft.ListView(expand=True, spacing=8)
 
-    # ── Chips de categoría ────────────────────────────────────────────────────
     chips_row = ft.Row(wrap=True, spacing=8, run_spacing=8)
 
     def build_chips():
@@ -116,7 +105,6 @@ def main(page: ft.Page):
 
     build_chips()
 
-    # ── Helpers visuales ──────────────────────────────────────────────────────
     def seccion_titulo(texto):
         return ft.Text(texto.upper(), size=11, color=MUTED,
                        weight="bold", font_family="monospace")
@@ -143,7 +131,7 @@ def main(page: ft.Page):
                     bgcolor=color_bg,
                     border_radius=12,
                     width=40, height=40,
-                    alignment=ft.alignment.center,
+                    alignment=ft.alignment.CENTER, # CORRECCIÓN: CENTER en Mayúsculas
                 ),
                 ft.Column([
                     ft.Text(titulo, size=13, color=TEXT, weight="w500"),
@@ -164,20 +152,19 @@ def main(page: ft.Page):
                             text_align=ft.TextAlign.CENTER),
             gradient=ft.LinearGradient(
                 [color_inicio, color_fin],
-                begin=ft.Alignment(-1, 0),
-                end=ft.Alignment(1, 0),
+                begin=ft.alignment.CENTER_LEFT,  # CORRECCIÓN: Mayúsculas
+                end=ft.alignment.CENTER_RIGHT,    # CORRECCIÓN: Mayúsculas
             ),
             border_radius=18,
             padding=ft.padding.symmetric(vertical=16),
-            alignment=ft.alignment.center,
+            alignment=ft.alignment.CENTER,        # CORRECCIÓN: Mayúsculas
             on_click=handler,
             animate=ft.Animation(100, ft.AnimationCurve.EASE_IN_OUT),
         )
 
-    # ── Snackbar ──────────────────────────────────────────────────────────────
     def mostrar_alerta(mensaje, color):
         snack = ft.SnackBar(
-            ft.Text(mensaje, color=ft.Colors.WHITE, weight="bold"),
+            content=ft.Text(mensaje, color=ft.Colors.WHITE, weight="bold"),
             bgcolor=color,
             duration=2000,
         )
@@ -185,7 +172,6 @@ def main(page: ft.Page):
         snack.open = True
         page.update()
 
-    # ── Actualizar resumen ────────────────────────────────────────────────────
     def actualizar_resumen():
         total_ing = sum(float(i["Monto"]) for i in datos["ingresos"])
         total_gas = sum(float(g["Monto"]) for g in datos["gastos"])
@@ -198,7 +184,6 @@ def main(page: ft.Page):
         txt_balance.value  = f"${balance:,.2f}"
         txt_balance.color  = GREEN if balance >= 0 else RED
 
-    # ── Renderizar listas ─────────────────────────────────────────────────────
     def renderizar_listas():
         lista_ingresos_ui.controls.clear()
         lista_gastos_ui.controls.clear()
@@ -249,7 +234,6 @@ def main(page: ft.Page):
 
         actualizar_resumen()
 
-    # ── Agregar registros ─────────────────────────────────────────────────────
     def agregar_ingreso(e):
         try:
             val = float(ingreso_cantidad.value)
@@ -260,7 +244,7 @@ def main(page: ft.Page):
                 "Concepto": ingreso_nombre.value.strip(),
                 "Monto": val,
             })
-            guardar_datos(datos)
+            guardar_datos(page, datos) # CORRECCIÓN: Guardar en storage
             ingreso_nombre.value = ""
             ingreso_cantidad.value = ""
             renderizar_listas()
@@ -278,7 +262,7 @@ def main(page: ft.Page):
                 "Categoría": cat,
                 "Monto": val,
             })
-            guardar_datos(datos)
+            guardar_datos(page, datos)
             gasto_cantidad.value = ""
             renderizar_listas()
             mostrar_alerta("✅ Gasto guardado", RED_DIM)
@@ -295,7 +279,7 @@ def main(page: ft.Page):
                 "Concepto": deuda_nombre.value.strip(),
                 "Monto": val,
             })
-            guardar_datos(datos)
+            guardar_datos(page, datos)
             deuda_nombre.value = ""
             deuda_cantidad.value = ""
             renderizar_listas()
@@ -303,18 +287,12 @@ def main(page: ft.Page):
         except Exception:
             mostrar_alerta("⚠️ Ingresa nombre y monto válido", RED_DIM)
 
-    # ─────────────────────────────────────────────────────────────────────────
     # ── VISTAS ───────────────────────────────────────────────────────────────
-    # ─────────────────────────────────────────────────────────────────────────
-
     mes_actual = datetime.now().strftime("%B %Y").capitalize()
 
-    # ── INICIO ───────────────────────────────────────────────────────────────
     vista_inicio = ft.Column(
         controls=[
             ft.Container(height=8),
-
-            # Tarjeta balance
             ft.Container(
                 content=ft.Column([
                     ft.Text("BALANCE TOTAL", size=11, color="#7aa0cc",
@@ -324,102 +302,76 @@ def main(page: ft.Page):
                 ], spacing=4),
                 gradient=ft.LinearGradient(
                     ["#1e3a5f", "#0f1e34"],
-                    begin=ft.Alignment(-1, -1),
-                    end=ft.Alignment(1, 1),
+                    begin=ft.alignment.TOP_LEFT,      # CORRECCIÓN: Mayúsculas
+                    end=ft.alignment.BOTTOM_RIGHT,    # CORRECCIÓN: Mayúsculas
                 ),
                 border=ft.border.all(1, "#2a4a6a"),
                 border_radius=24,
                 padding=ft.padding.symmetric(horizontal=22, vertical=20),
             ),
-
             ft.Container(height=10),
-
-            # Fila de estadísticas
             ft.Row([
                 tarjeta_stat("💹", txt_ing_card, "Ingresos"),
                 tarjeta_stat("📉", txt_gas_card, "Gastos"),
                 tarjeta_stat("⚠️", txt_deu_card, "Deudas"),
             ], spacing=10),
-
             ft.Container(height=14),
             seccion_titulo("Últimos movimientos"),
             ft.Container(height=6),
-
-            ft.Container(
-                content=lista_recientes,
-                expand=True,
-            ),
+            ft.Container(content=lista_recientes, expand=True),
         ],
-        expand=True,
-        visible=True,
-        scroll=ft.ScrollMode.AUTO,
-        spacing=0,
+        expand=True, visible=True, scroll=ft.ScrollMode.AUTO, spacing=0,
     )
 
     def wrap_vista(controles, visible=False):
         return ft.Column(
-            controls=controles,
-            expand=True,
-            visible=visible,
-            scroll=ft.ScrollMode.AUTO,
-            spacing=12,
+            controls=controles, expand=True, visible=visible,
+            scroll=ft.ScrollMode.AUTO, spacing=12,
         )
 
-    # ── INGRESOS ─────────────────────────────────────────────────────────────
     vista_ingreso = wrap_vista([
         ft.Container(height=4),
-        ft.Text("Nuevo Ingreso", size=22, weight="bold", color=TEXT,
-                font_family="monospace"),
+        ft.Text("Nuevo Ingreso", size=22, weight="bold", color=TEXT, font_family="monospace"),
         ft.Text("Registra lo que entra a tu bolsillo", size=12, color=MUTED),
         ft.Container(height=4),
-        ingreso_nombre,
-        ingreso_cantidad,
+        ingreso_nombre, ingreso_cantidad,
         boton_accion("＋ Añadir Ingreso", GREEN_DIM, GREEN, agregar_ingreso),
         ft.Divider(color=BORDER, height=20),
         seccion_titulo("Mis ingresos"),
         ft.Container(content=lista_ingresos_ui, expand=True),
     ])
 
-    # ── GASTOS ────────────────────────────────────────────────────────────────
     vista_gasto = wrap_vista([
         ft.Container(height=4),
-        ft.Text("Nuevo Gasto", size=22, weight="bold", color=TEXT,
-                font_family="monospace"),
+        ft.Text("Nuevo Gasto", size=22, weight="bold", color=TEXT, font_family="monospace"),
         ft.Text("¿En qué gastaste hoy?", size=12, color=MUTED),
         ft.Container(height=4),
-        ft.Text("CATEGORÍA", size=11, color=MUTED, weight="bold",
-                font_family="monospace"),
-        chips_row,
-        gasto_cantidad,
+        ft.Text("CATEGORÍA", size=11, color=MUTED, weight="bold", font_family="monospace"),
+        chips_row, gasto_cantidad,
         boton_accion("＋ Añadir Gasto", RED_DIM, RED, agregar_gasto),
         ft.Divider(color=BORDER, height=20),
         seccion_titulo("Mis gastos"),
         ft.Container(content=lista_gastos_ui, expand=True),
     ])
 
-    # ── DEUDAS ────────────────────────────────────────────────────────────────
     vista_deuda = wrap_vista([
         ft.Container(height=4),
-        ft.Text("Nueva Deuda", size=22, weight="bold", color=TEXT,
-                font_family="monospace"),
+        ft.Text("Nueva Deuda", size=22, weight="bold", color=TEXT, font_family="monospace"),
         ft.Text("Registra lo que debes o te deben", size=12, color=MUTED),
         ft.Container(height=4),
-        deuda_nombre,
-        deuda_cantidad,
+        deuda_nombre, deuda_cantidad,
         boton_accion("＋ Añadir Deuda", ORANGE_DIM, ORANGE, agregar_deuda),
         ft.Divider(color=BORDER, height=20),
         seccion_titulo("Deudas activas"),
         ft.Container(content=lista_deudas_ui, expand=True),
     ])
 
-    # ── Contenedor principal con padding ─────────────────────────────────────
     contenido = ft.Container(
         content=ft.Stack([vista_inicio, vista_ingreso, vista_gasto, vista_deuda]),
         padding=ft.padding.symmetric(horizontal=18, vertical=10),
         expand=True,
     )
 
-    # ── Cambiar tab ───────────────────────────────────────────────────────────
     def cambiar_tab(e):
         idx = e.control.selected_index
         vista_inicio.visible  = (idx == 0)
@@ -428,39 +380,20 @@ def main(page: ft.Page):
         vista_deuda.visible   = (idx == 3)
         page.update()
 
-    # ── Nav bar ───────────────────────────────────────────────────────────────
     page.navigation_bar = ft.NavigationBar(
         bgcolor=SURFACE,
         indicator_color="rgba(91,140,255,0.15)",
-        shadow_color="transparent",
         destinations=[
-            ft.NavigationBarDestination(
-                icon=ft.Icons.PIE_CHART_OUTLINE,
-                selected_icon=ft.Icons.PIE_CHART,
-                label="Inicio",
-            ),
-            ft.NavigationBarDestination(
-                icon=ft.Icons.TRENDING_UP_OUTLINED,
-                selected_icon=ft.Icons.TRENDING_UP,
-                label="Ingresos",
-            ),
-            ft.NavigationBarDestination(
-                icon=ft.Icons.TRENDING_DOWN_OUTLINED,
-                selected_icon=ft.Icons.TRENDING_DOWN,
-                label="Gastos",
-            ),
-            ft.NavigationBarDestination(
-                icon=ft.Icons.ACCOUNT_BALANCE_WALLET_OUTLINED,
-                selected_icon=ft.Icons.ACCOUNT_BALANCE_WALLET,
-                label="Deudas",
-            ),
+            ft.NavigationBarDestination(icon=ft.Icons.PIE_CHART_OUTLINE, selected_icon=ft.Icons.PIE_CHART, label="Inicio"),
+            ft.NavigationBarDestination(icon=ft.Icons.TRENDING_UP, label="Ingresos"),
+            ft.NavigationBarDestination(icon=ft.Icons.TRENDING_DOWN, label="Gastos"),
+            ft.NavigationBarDestination(icon=ft.Icons.ACCOUNT_BALANCE_WALLET_OUTLINED, label="Deudas"),
         ],
         on_change=cambiar_tab,
     )
 
     renderizar_listas()
     page.add(contenido)
-
 
 def main_detector(page: ft.Page):
     import traceback
