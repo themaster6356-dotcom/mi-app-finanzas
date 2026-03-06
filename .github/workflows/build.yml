@@ -12,11 +12,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11' # Versión más estable para evitar errores de unicode
 
-      - name: Install Dependencies
+      - name: Install Flet
         run: |
-          pip install flet==0.21.2
+          python -m pip install --upgrade pip
+          pip install flet==0.21.2 
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -30,14 +31,10 @@ jobs:
           flutter-version: '3.19.0'
 
       - name: Accept Android Licenses
-        run: |
-          # Esto soluciona el error que tenías en el log
-          yes | sdkmanager --licenses || true
+        run: yes | sdkmanager --licenses || true
 
       - name: Build APK
-        run: |
-          # Quitamos --permissions manuales porque daban error de "choice"
-          flet build apk
+        run: flet build apk
           
       - name: Upload APK
         uses: actions/upload-artifact@v4
