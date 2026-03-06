@@ -43,8 +43,8 @@ def main(page: ft.Page):
     ingreso_cantidad = ft.TextField(label="Monto ($)", width=300, keyboard_type=ft.KeyboardType.NUMBER, prefix_icon=ft.Icons.ATTACH_MONEY)
     lista_ingresos_ui = ft.ListView(expand=1, spacing=10)
 
-    # AQUÍ ESTÁ LA MAGIA: Cambiamos 'prefix_icon' por 'icon' porque el Dropdown no soporta el primero.
-    gasto_categoria = ft.Dropdown(label="Categoría", width=300, options=[ft.dropdown.Option(cat) for cat in categorias_gastos], icon=ft.Icons.CATEGORY)
+    # AQUÍ ESTÁ EL CAMBIO DEFINITIVO: Cero iconos en el Dropdown para que no moleste más.
+    gasto_categoria = ft.Dropdown(label="Categoría", width=300, options=[ft.dropdown.Option(cat) for cat in categorias_gastos])
     gasto_cantidad = ft.TextField(label="Monto ($)", width=300, keyboard_type=ft.KeyboardType.NUMBER, prefix_icon=ft.Icons.MONEY_OFF)
     lista_gastos_ui = ft.ListView(expand=1, spacing=10)
 
